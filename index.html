@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Josh Daley — WACC Calculator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=DM+Mono&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f7f6f3;
+      --surface: #ffffff;
+      --border: rgba(0,0,0,0.10);
+      --border-strong: rgba(0,0,0,0.18);
+      --text-primary: #1a1a18;
+      --text-secondary: #5f5e5a;
+      --text-tertiary: #999890;
+      --text-danger: #a32d2d;
+      --blue: #185FA5;
+      --teal: #1D9E75;
+      --metric-bg: #f1efe8;
+      --font: 'DM Sans', sans-serif;
+      --mono: 'DM Mono', monospace;
+      --radius: 10px;
+      --radius-sm: 6px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1a1a18;
+        --surface: #242422;
+        --border: rgba(255,255,255,0.10);
+        --border-strong: rgba(255,255,255,0.18);
+        --text-primary: #f0ede6;
+        --text-secondary: #a09e96;
+        --text-tertiary: #6a6860;
+        --text-danger: #f09595;
+        --blue: #85B7EB;
+        --teal: #5DCAA5;
+        --metric-bg: #2c2c2a;
+      }
+    }
+
+    html { font-size: 16px; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text-primary);
+      min-height: 100vh;
+      padding: 2.5rem 1rem 4rem;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    .site-tag {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      margin-bottom: 6px;
+    }
+    .page-title {
+      font-size: 30px;
+      font-weight: 500;
+      color: var(--text-primary);
+      line-height: 1.15;
+    }
+    .page-subtitle {
+      font-size: 15px;
+      color: var(--text-secondary);
+      margin-top: 5px;
+      margin-bottom: 2.5rem;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--surface);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      margin-bottom: 14px;
+    }
+
+    /* Inputs */
+    .input-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    @media (max-width: 480px) {
+      .input-grid { grid-template-columns: 1fr; }
+    }
+
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    .field label { font-size: 13px; color: var(--text-secondary); }
+    .field-hint { font-size: 11px; color: var(--text-tertiary); }
+
+    .input-wrap { position: relative; display: flex; align-items: center; }
+    .input-wrap input {
+      width: 100%;
+      padding: 8px 32px 8px 10px;
+      font-family: var(--font);
+      font-size: 14px;
+      color: var(--text-primary);
+      background: var(--bg);
+      border: 0.5px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      outline: none;
+      transition: border-color 0.15s;
+      -moz-appearance: textfield;
+    }
+    .input-wrap input::-webkit-outer-spin-button,
+    .input-wrap input::-webkit-inner-spin-button { -webkit-appearance: none; }
+    .input-wrap input:focus { border-color: var(--blue); }
+    .input-wrap .unit {
+      position: absolute;
+      right: 10px;
+      font-size: 13px;
+      color: var(--text-tertiary);
+      pointer-events: none;
+    }
+
+    /* Weight bar */
+    .weight-bar {
+      height: 6px;
+      border-radius: 3px;
+      background: var(--metric-bg);
+      margin: 1rem 0 0.75rem;
+      display: flex;
+      overflow: hidden;
+    }
+    .weight-equity { background: var(--blue); height: 100%; transition: width 0.3s ease; }
+    .weight-debt   { background: var(--teal); height: 100%; transition: width 0.3s ease; }
+    .weight-legend { display: flex; gap: 18px; font-size: 12px; color: var(--text-secondary); margin-bottom: 0.25rem; }
+    .legend-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; vertical-align: middle; }
+
+    /* Results */
+    .result-section { margin-top: 1.5rem; }
+
+    .wacc-display { margin-bottom: 1.5rem; }
+    .wacc-row { display: flex; align-items: baseline; gap: 6px; }
+    .wacc-number { font-size: 52px; font-weight: 500; color: var(--text-primary); line-height: 1; }
+    .wacc-pct { font-size: 26px; color: var(--text-secondary); }
+    .wacc-label { font-size: 13px; color: var(--text-secondary); margin-top: 5px; }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+      margin-bottom: 1.25rem;
+    }
+    .metric {
+      background: var(--metric-bg);
+      border-radius: var(--radius-sm);
+      padding: 0.875rem 1rem;
+    }
+    .metric-label { font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
+    .metric-value { font-size: 20px; font-weight: 500; color: var(--text-primary); }
+
+    /* Formula */
+    .formula-box {
+      background: var(--metric-bg);
+      border-radius: var(--radius-sm);
+      padding: 1rem 1.25rem;
+    }
+    .formula-title { font-size: 11px; color: var(--text-tertiary); margin-bottom: 8px; letter-spacing: 0.05em; }
+    .formula-text {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--text-primary);
+      line-height: 1.8;
+      white-space: pre-wrap;
+    }
+
+    /* Footer */
+    footer {
+      margin-top: 3rem;
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <div>
+      <div class="site-tag">Josh Daley — Financial Tools</div>
+      <h1 class="page-title">WACC Calculator</h1>
+      <p class="page-subtitle">Weighted Average Cost of Capital</p>
+    </div>
+
+    <!-- Capital Structure -->
+    <div class="card">
+      <div class="section-label">Capital Structure</div>
+      <div class="input-grid">
+        <div class="field">
+          <label for="equity-val">Market Value of Equity (E)</label>
+          <div class="input-wrap">
+            <input type="number" id="equity-val" value="500" min="0" step="1" />
+            <span class="unit">$M</span>
+          </div>
+        </div>
+        <div class="field">
+          <label for="debt-val">Market Value of Debt (D)</label>
+          <div class="input-wrap">
+            <input type="number" id="debt-val" value="200" min="0" step="1" />
+            <span class="unit">$M</span>
+          </div>
+        </div>
+      </div>
+      <div class="weight-bar">
+        <div class="weight-equity" id="bar-equity" style="width:71.4%"></div>
+        <div class="weight-debt"   id="bar-debt"   style="width:28.6%"></div>
+      </div>
+      <div class="weight-legend">
+        <span><span class="legend-dot" style="background:var(--blue)"></span>Equity <span id="we-pct">71.4%</span></span>
+        <span><span class="legend-dot" style="background:var(--teal)"></span>Debt <span id="wd-pct">28.6%</span></span>
+      </div>
+    </div>
+
+    <!-- Cost of Equity -->
+    <div class="card">
+      <div class="section-label">Cost of Equity — CAPM</div>
+      <div class="input-grid">
+        <div class="field">
+          <label for="rf">Risk-Free Rate</label>
+          <div class="input-wrap">
+            <input type="number" id="rf" value="4.5" min="0" step="0.1" />
+            <span class="unit">%</span>
+          </div>
+          <span class="field-hint">e.g. 10-year Treasury yield</span>
+        </div>
+        <div class="field">
+          <label for="beta">Beta (β)</label>
+          <div class="input-wrap">
+            <input type="number" id="beta" value="1.2" min="0" step="0.01" />
+          </div>
+          <span class="field-hint">Systematic risk vs. market</span>
+        </div>
+        <div class="field">
+          <label for="erp">Equity Risk Premium</label>
+          <div class="input-wrap">
+            <input type="number" id="erp" value="5.5" min="0" step="0.1" />
+            <span class="unit">%</span>
+          </div>
+          <span class="field-hint">E[Rm] − Rf, typically 4–6%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cost of Debt -->
+    <div class="card">
+      <div class="section-label">Cost of Debt</div>
+      <div class="input-grid">
+        <div class="field">
+          <label for="kd">Pre-Tax Cost of Debt</label>
+          <div class="input-wrap">
+            <input type="number" id="kd" value="6.0" min="0" step="0.1" />
+            <span class="unit">%</span>
+          </div>
+          <span class="field-hint">Yield to maturity on debt</span>
+        </div>
+        <div class="field">
+          <label for="tax">Corporate Tax Rate</label>
+          <div class="input-wrap">
+            <input type="number" id="tax" value="21" min="0" max="100" step="0.1" />
+            <span class="unit">%</span>
+          </div>
+          <span class="field-hint">US federal rate: 21%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div class="result-section">
+      <div class="section-label">Result</div>
+      <div class="card">
+        <div class="wacc-display">
+          <div class="wacc-row">
+            <span class="wacc-number" id="wacc-out">—</span>
+            <span class="wacc-pct">%</span>
+          </div>
+          <div class="wacc-label">Weighted Average Cost of Capital</div>
+        </div>
+
+        <div class="metrics-grid">
+          <div class="metric">
+            <div class="metric-label">Cost of Equity (Ke)</div>
+            <div class="metric-value" id="ke-out">—</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">After-Tax Cost of Debt</div>
+            <div class="metric-value" id="atd-out">—</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Equity Weight (E/V)</div>
+            <div class="metric-value" id="we-out">—</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Debt Weight (D/V)</div>
+            <div class="metric-value" id="wd-out">—</div>
+          </div>
+        </div>
+
+        <div class="formula-box">
+          <div class="formula-title">FORMULA BREAKDOWN</div>
+          <div class="formula-text" id="formula-text">WACC = (E/V) × Ke + (D/V) × Kd × (1 − T)</div>
+        </div>
+      </div>
+    </div>
+
+    <footer>Josh Daley &mdash; Financial Tools &middot; WACC Calculator</footer>
+  </div>
+
+  <script>
+    const inputs = ['equity-val','debt-val','rf','beta','erp','kd','tax'];
+    inputs.forEach(id => document.getElementById(id).addEventListener('input', calc));
+
+    function fmt(n, d = 2) {
+      return isNaN(n) || !isFinite(n) ? '—' : n.toFixed(d);
+    }
+
+    function calc() {
+      const E   = parseFloat(document.getElementById('equity-val').value) || 0;
+      const D   = parseFloat(document.getElementById('debt-val').value)   || 0;
+      const rf  = parseFloat(document.getElementById('rf').value)          || 0;
+      const beta= parseFloat(document.getElementById('beta').value)        || 0;
+      const erp = parseFloat(document.getElementById('erp').value)         || 0;
+      const kd  = parseFloat(document.getElementById('kd').value)          || 0;
+      const tax = parseFloat(document.getElementById('tax').value)         || 0;
+
+      const V  = E + D;
+      if (V === 0) {
+        document.getElementById('wacc-out').textContent = '—';
+        ['ke-out','atd-out','we-out','wd-out'].forEach(id => {
+          document.getElementById(id).textContent = '—';
+        });
+        document.getElementById('formula-text').textContent =
+          'WACC = (E/V) × Ke + (D/V) × Kd × (1 − T)';
+        return;
+      }
+
+      const we   = E / V;
+      const wd   = D / V;
+      const ke   = rf + beta * erp;
+      const atd  = kd * (1 - tax / 100);
+      const wacc = we * ke + wd * atd;
+
+      document.getElementById('wacc-out').textContent  = fmt(wacc);
+      document.getElementById('ke-out').textContent    = fmt(ke) + '%';
+      document.getElementById('atd-out').textContent   = fmt(atd) + '%';
+      document.getElementById('we-out').textContent    = fmt(we * 100) + '%';
+      document.getElementById('wd-out').textContent    = fmt(wd * 100) + '%';
+      document.getElementById('we-pct').textContent    = fmt(we * 100, 1) + '%';
+      document.getElementById('wd-pct').textContent    = fmt(wd * 100, 1) + '%';
+
+      document.getElementById('bar-equity').style.width = (we * 100) + '%';
+      document.getElementById('bar-debt').style.width   = (wd * 100) + '%';
+
+      const eContrib = we * (ke  / 100);
+      const dContrib = wd * (atd / 100);
+
+      document.getElementById('formula-text').textContent =
+        'WACC = (E/V) × Ke  +  (D/V) × Kd × (1 − T)\n' +
+        '     = ' + fmt(we*100) + '% × ' + fmt(ke) + '%  +  ' + fmt(wd*100) + '% × ' + fmt(kd) + '% × (1 − ' + fmt(tax) + '%)\n' +
+        '     = ' + fmt(we * ke, 4) + '%  +  ' + fmt(wd * atd, 4) + '%\n' +
+        '     = ' + fmt(wacc) + '%';
+    }
+
+    calc();
+  </script>
+</body>
+</html>
